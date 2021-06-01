@@ -73,8 +73,8 @@ extern "C" {
     fn CFtdcTraderApiImplReqParkedOrderAction(api: *mut c_void, pParkedOrderAction: *const CThostFtdcParkedOrderActionField, nRequestID: c_int) -> c_int;
     #[link_name = "_ZN18CFtdcTraderApiImpl14ReqOrderActionEP31CThostFtdcInputOrderActionFieldi"]
     fn CFtdcTraderApiImplReqOrderAction(api: *mut c_void, pInputOrderAction: *const CThostFtdcInputOrderActionField, nRequestID: c_int) -> c_int;
-    #[link_name = "_ZN18CFtdcTraderApiImpl22ReqQueryMaxOrderVolumeEP34CThostFtdcQueryMaxOrderVolumeFieldi"]
-    fn CFtdcTraderApiImplReqQueryMaxOrderVolume(api: *mut c_void, pQueryMaxOrderVolume: *const CThostFtdcQueryMaxOrderVolumeField, nRequestID: c_int) -> c_int;
+    #[link_name = "_ZN18CFtdcTraderApiImpl22ReqQueryMaxOrderVolumeEP34CThostFtdcQryMaxOrderVolumeFieldi"]
+    fn CFtdcTraderApiImplReqQueryMaxOrderVolume(api: *mut c_void, pQueryMaxOrderVolume: *const CThostFtdcQryMaxOrderVolumeField, nRequestID: c_int) -> c_int;
     #[link_name = "_ZN18CFtdcTraderApiImpl24ReqSettlementInfoConfirmEP36CThostFtdcSettlementInfoConfirmFieldi"]
     fn CFtdcTraderApiImplReqSettlementInfoConfirm(api: *mut c_void, pSettlementInfoConfirm: *const CThostFtdcSettlementInfoConfirmField, nRequestID: c_int) -> c_int;
     #[link_name = "_ZN18CFtdcTraderApiImpl20ReqRemoveParkedOrderEP32CThostFtdcRemoveParkedOrderFieldi"]
@@ -1048,7 +1048,7 @@ extern "C" fn spi_on_rsp_order_action(spi: *mut CThostFtdcTraderSpi, pInputOrder
 }
 
 #[allow(non_snake_case, unused_variables)]
-extern "C" fn spi_on_rsp_query_max_order_volume(spi: *mut CThostFtdcTraderSpi, pQueryMaxOrderVolume: *const CThostFtdcQueryMaxOrderVolumeField, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool) {}
+extern "C" fn spi_on_rsp_query_max_order_volume(spi: *mut CThostFtdcTraderSpi, pQueryMaxOrderVolume: *const CThostFtdcQryMaxOrderVolumeField, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool) {}
 
 #[allow(non_snake_case)]
 extern "C" fn spi_on_rsp_settlement_info_confirm(spi: *mut CThostFtdcTraderSpi, pSettlementInfoConfirm: *const CThostFtdcSettlementInfoConfirmField, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool) {
@@ -1519,7 +1519,7 @@ struct SpiVTable {
     #[allow(non_snake_case)]
     on_rsp_order_action: extern "C" fn(spi: *mut CThostFtdcTraderSpi, pInputOrderAction: *const CThostFtdcInputOrderActionField, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool),
     #[allow(non_snake_case)]
-    on_rsp_query_max_order_volume: extern "C" fn(spi: *mut CThostFtdcTraderSpi, pQueryMaxOrderVolume: *const CThostFtdcQueryMaxOrderVolumeField, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool),
+    on_rsp_query_max_order_volume: extern "C" fn(spi: *mut CThostFtdcTraderSpi, pQueryMaxOrderVolume: *const CThostFtdcQryMaxOrderVolumeField, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool),
     #[allow(non_snake_case)]
     on_rsp_settlement_info_confirm: extern "C" fn(spi: *mut CThostFtdcTraderSpi, pSettlementInfoConfirm: *const CThostFtdcSettlementInfoConfirmField, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool),
     #[allow(non_snake_case)]
