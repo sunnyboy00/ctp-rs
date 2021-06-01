@@ -86,17 +86,17 @@ pub struct OrderIdExchangeDuo {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ResumeType {
-    Restart = THOST_TE_RESUME_TYPE::THOST_TERT_RESTART as isize,
-    Resume = THOST_TE_RESUME_TYPE::THOST_TERT_RESUME as isize,
-    Quick = THOST_TE_RESUME_TYPE::THOST_TERT_QUICK as isize,
+    Restart = THOST_TE_RESUME_TYPE_THOST_TERT_RESTART as isize,
+    Resume = THOST_TE_RESUME_TYPE_THOST_TERT_RESUME as isize,
+    Quick = THOST_TE_RESUME_TYPE_THOST_TERT_QUICK as isize,
 }
 
 impl std::convert::Into<THOST_TE_RESUME_TYPE> for ResumeType {
     fn into(self) -> THOST_TE_RESUME_TYPE {
         match self {
-            ResumeType::Restart => THOST_TE_RESUME_TYPE::THOST_TERT_RESTART,
-            ResumeType::Resume => THOST_TE_RESUME_TYPE::THOST_TERT_RESUME,
-            ResumeType::Quick => THOST_TE_RESUME_TYPE::THOST_TERT_QUICK,
+            ResumeType::Restart => THOST_TE_RESUME_TYPE_THOST_TERT_RESTART,
+            ResumeType::Resume => THOST_TE_RESUME_TYPE_THOST_TERT_RESUME,
+            ResumeType::Quick => THOST_TE_RESUME_TYPE_THOST_TERT_QUICK,
         }
     }
 }
