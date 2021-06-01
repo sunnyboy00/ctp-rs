@@ -1,14 +1,15 @@
 //! Rust script used for generate sources in `src/generated`
-//! Use `cargo script` to run it
+//! Use `cargo install cargo-script`
+//! Use `cargo-script script generate.rs` to run it
 //!
 //! ```cargo
 //! [package]
 //! edition = "2018"
 //!
 //! [dependencies]
-//! bindgen = "0.30"
-//! encoding = "0.2"
-//! xmltree = "0.4"
+//! bindgen = "0.58.1"
+//! encoding = "0.2.33"
+//! xmltree = "0.10"
 //! ```
 use encoding::{ decode, DecoderTrap };
 use encoding::all::GB18030;
@@ -47,7 +48,11 @@ struct Errors {
 impl Errors {
     pub fn from_xml_element(element: xml::Element) -> Result<Self, String> {
         let mut errors = Vec::new();
-        for child in element.children {
+        for line in element.children {
+            let child = match line.as_element() {
+                Some(x) =>  x,
+                None => continue
+            };
             let id = child.attributes.get("id").ok_or(String::from("no id attribute in one of the child"))?.to_owned();
             let value_string = child.attributes.get("value").ok_or(String::from("no value attribute in one of the child"))?;
             let value = value_string.parse().map_err(|e| format!("cannot parse value to integer, {}", e))?;
