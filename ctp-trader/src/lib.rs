@@ -1,14 +1,13 @@
 use std::ffi::{ CStr, CString };
 use std::os::raw::{ c_void, c_char, c_int };
-use std::sync::mpsc;
+
+use crossbeam_channel::{Sender};
 
 #[allow(non_camel_case_types)]
 type c_bool = std::os::raw::c_uchar;
 
-#[cfg(feature = "channel")]
-mod channel;
-#[cfg(feature = "channel")]
-pub use channel::*;
+
+
 
 pub use ctp_common::*;
 
@@ -822,11 +821,11 @@ pub enum TraderSpiOutput {
 
 #[derive(Clone, Debug)]
 pub struct SenderTraderSpi<T: From<TraderSpiOutput> + Send + 'static> {
-    sender: mpsc::Sender<T>,
+   pub sender: crossbeam_channel::Sender<T>,
 }
 
 impl<T> SenderTraderSpi<T> where T: From<TraderSpiOutput> + Send + 'static {
-    pub fn new(sender: mpsc::Sender<T>) -> Self {
+    pub fn new(sender: crossbeam_channel::Sender<T>) -> Self {
         SenderTraderSpi {
             sender,
         }
