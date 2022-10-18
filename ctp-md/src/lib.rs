@@ -50,6 +50,7 @@ extern "C" {
 }
 
 pub trait GenericMdApi {
+    fn get_version(&mut self)->String;
     fn new(flow_path: CString, use_udp: bool, use_multicast: bool) -> Self;
     fn init(&mut self);
     fn join(&mut self) -> ApiResult;
@@ -75,6 +76,11 @@ pub struct MdApi {
 unsafe impl Send for MdApi {}
 
 impl GenericMdApi for MdApi {
+     fn get_version(&mut self) -> String {
+        let cs = unsafe { CStr::from_ptr(CThostFtdcMdApiGetApiVersion()) };
+        cs.to_string_lossy().into()
+    }
+
     fn new(flow_path: CString, use_udp: bool, use_multicast: bool) -> Self {
         let flow_path_ptr = flow_path.into_raw();
         let api = unsafe { CThostFtdcMdApiCreateFtdcMdApi(flow_path_ptr, use_udp as c_bool, use_multicast as c_bool) };
@@ -130,11 +136,11 @@ impl GenericMdApi for MdApi {
         };
     }
 
-    fn subscribe_market_data(&mut self, instrument_ids: &[CString]) -> ApiResult {
-        let v = cstring_slice_to_char_star_vec(instrument_ids);
-        from_api_return_to_api_result(unsafe { CFtdcMdApiImplSubscribeMarketData(self.md_api_ptr, v.as_ptr(), v.len() as c_int) })
-    }
-
+fn subscribe_market_data(&mut self, instrument_ids: &[CString]) -> ApiResult {
+       let v = cstring_slice_to_char_star_vec(instrument_ids);
+   from_api_return_to_api_result(unsafe { CFtdcMdApiImplSubscribeMarketData(self.md_api_ptr, v.as_ptr(), v.len() as c_int) })
+   }
+ 
     fn unsubscribe_market_data(&mut self, instrument_ids: &[CString]) -> ApiResult {
         let v = cstring_slice_to_char_star_vec(instrument_ids);
         from_api_return_to_api_result(unsafe { CFtdcMdApiImplUnSubscribeMarketData(self.md_api_ptr, v.as_ptr(), v.len() as c_int) })
@@ -201,6 +207,10 @@ pub trait MdSpi : Send {
     fn on_rsp_user_logout(&mut self, rsp_user_logout: Option<&CThostFtdcUserLogoutField>, result: RspResult, request_id: TThostFtdcRequestIDType, is_last: bool) {
         println!("on_rsp_user_logout: {:?}, {}, {:?}, {:?}", rsp_user_logout, from_rsp_result_to_string(&result), request_id, is_last);
     }
+    #[allow(unused_variables)]
+    fn on_rsp_qry_multicast_instrument(&mut self, pMulticastInstrument: Option<&CThostFtdcMulticastInstrumentField>, result: RspResult, request_id:TThostFtdcRequestIDType, is_last: bool) { 
+
+     }
 
     #[allow(unused_variables)]
     fn on_rsp_error(&mut self, result: RspResult, request_id: TThostFtdcRequestIDType, is_last: bool) {
@@ -326,21 +336,21 @@ pub enum MdSpiOutput {
     UnSubForQuoteRsp(MdSpiOnRspUnSubForQuoteRsp),
     DepthMarketData(MdSpiOnRtnDepthMarketData),
     ForQuoteRsp(MdSpiOnRtnForQuoteRsp),
+    Auth(i32),
 }
 
 #[derive(Clone, Debug)]
 pub struct SenderMdSpi<T: From<MdSpiOutput> + Send + 'static> {
-    sender: mpsc::Sender<T>,
+    pub sender: crossbeam_channel::Sender<T>,
 }
 
 impl<T> SenderMdSpi<T> where T: From<MdSpiOutput> + Send + 'static {
-    pub fn new(sender: mpsc::Sender<T>) -> Self {
+    pub fn new(sender: crossbeam_channel::Sender<T>) -> Self {
         SenderMdSpi {
             sender,
         }
     }
 }
-
 impl<T> MdSpi for SenderMdSpi<T> where T: From<MdSpiOutput> + Send + 'static {
     fn on_front_connected(&mut self) {
         self.sender.send(T::from(MdSpiOutput::FrontConnected(MdSpiOnFrontConnected{ }))).expect("spi callback send front_connected failed");
@@ -358,6 +368,9 @@ impl<T> MdSpi for SenderMdSpi<T> where T: From<MdSpiOutput> + Send + 'static {
         self.sender.send(T::from(MdSpiOutput::RspUserLogout(MdSpiOnRspUserLogout{ user_logout: rsp_user_logout.cloned(), result, request_id, is_last }))).expect("spi callback send rsp_user_logout failed");
     }
 
+    fn on_rsp_qry_multicast_instrument(&mut self, pMulticastInstrument: Option<&CThostFtdcMulticastInstrumentField>, result: RspResult, request_id:TThostFtdcRequestIDType, is_last: bool) { 
+        println!("on_rsp_qry_multicast_instrument")
+    }
     fn on_rsp_error(&mut self, result: RspResult, request_id: i32, is_last: bool) {
         self.sender.send(T::from(MdSpiOutput::RspError(MdSpiOnRspError{ result, request_id, is_last }))).expect("spi callback send rsp_error failed");
     }
@@ -421,6 +434,15 @@ extern "C" fn spi_on_rsp_user_logout(spi: *mut CThostFtdcMdSpi, pUserLogout: *co
 }
 
 #[allow(non_snake_case)]
+extern "C" fn spi_on_rsp_qry_multicast_instrument(spi: *mut CThostFtdcMdSpi, pMulticastInstrument: *const CThostFtdcMulticastInstrumentField, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool) { 
+    unsafe{
+        let rsp_info = from_rsp_info_to_rsp_result(pRspInfo);
+        (*(*spi).md_spi_ptr).on_rsp_qry_multicast_instrument(pMulticastInstrument.as_ref(), rsp_info, nRequestID, bIsLast != 0);
+
+    }
+}
+
+#[allow(non_snake_case)]
 extern "C" fn spi_on_rsp_error(spi: *mut CThostFtdcMdSpi, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool) {
     unsafe {
         let rsp_info = from_rsp_info_to_rsp_result(pRspInfo);
@@ -469,7 +491,6 @@ extern "C" fn spi_on_rtn_depth_market_data(spi: *mut CThostFtdcMdSpi, pDepthMark
 extern "C" fn spi_on_rtn_for_quote_rsp(spi: *mut CThostFtdcMdSpi, pForQuoteRsp: *const CThostFtdcForQuoteRspField ) {
     unsafe { (*(*spi).md_spi_ptr).on_rtn_for_quote_rsp(pForQuoteRsp.as_ref()) };
 }
-
 #[repr(C)]
 #[derive(Debug)]
 struct SpiVTable {
@@ -483,6 +504,8 @@ struct SpiVTable {
     on_rsp_user_login: extern "C" fn(spi: *mut CThostFtdcMdSpi, pRspUserLogin: *const CThostFtdcRspUserLoginField, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool),
     #[allow(non_snake_case)]
     on_rsp_user_logout: extern "C" fn(spi: *mut CThostFtdcMdSpi, pUserLogout: *const CThostFtdcUserLogoutField, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool),
+    #[allow(non_snake_case)]
+    on_rsp_qry_multicast_instrument: extern "C" fn(spi: *mut CThostFtdcMdSpi, pMulticastInstrument: *const CThostFtdcMulticastInstrumentField, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool),
     #[allow(non_snake_case)]
     on_rsp_error: extern "C" fn(spi: *mut CThostFtdcMdSpi, pRspInfo: *const CThostFtdcRspInfoField, nRequestID: c_int, bIsLast: c_bool),
     #[allow(non_snake_case)]
@@ -505,11 +528,12 @@ static SPI_VTABLE: SpiVTable = SpiVTable{
     on_heart_beat_warning: spi_on_heart_beat_warning,
     on_rsp_user_login: spi_on_rsp_user_login,
     on_rsp_user_logout: spi_on_rsp_user_logout,
+    on_rsp_qry_multicast_instrument:spi_on_rsp_qry_multicast_instrument,
     on_rsp_error: spi_on_rsp_error,
     on_rsp_sub_market_data: spi_on_rsp_sub_market_data,
     on_rsp_un_sub_market_data: spi_on_rsp_un_sub_market_data,
     on_rsp_sub_for_quote_rsp: spi_on_rsp_sub_for_quote_rsp,
-    on_rsp_un_sub_for_quote_rsp: spi_on_rsp_un_sub_for_quote_rsp,
+   on_rsp_un_sub_for_quote_rsp: spi_on_rsp_un_sub_for_quote_rsp,
     on_rtn_depth_market_data: spi_on_rtn_depth_market_data,
     on_rtn_for_quote_rsp: spi_on_rtn_for_quote_rsp,
 };
