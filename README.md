@@ -2,7 +2,9 @@
 
 [![Build Status](https://travis-ci.org/WiSaGaN/ctp-rs.svg?branch=master)](https://travis-ci.org/WiSaGaN/ctp-rs)
 
-A Rust wrapper of CTP API.
+A Rust wrapper of CTP API 
+
+CTP api version: v6.6.1_P1_20210406.
 
 ## Background
 
